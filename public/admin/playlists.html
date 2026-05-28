@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИЭФ ТВ — Конструктор Плейлистов</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19; --bg-card: #131a2c; --bg-item: #1b243c;
+            --accent: #38bdf8; --accent-glow: rgba(56,189,248,0.15);
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.05); --success: #10b981; --danger: #ef4444;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { background: linear-gradient(to right, #0f172a, #1e1b4b); padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
+        .header .btn-back { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; transition: all 0.2s; }
+        .header .btn-back:hover { color: var(--accent); border-color: var(--accent); }
+        .container { max-width: 1300px; margin: 30px auto; padding: 0 30px; flex: 1; }
+        .control-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 25px; margin-bottom: 25px; display: flex; gap: 20px; align-items: flex-end; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .select-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        select { padding: 12px; background: #090d16; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; width: 260px; outline: none; transition: border-color 0.2s; }
+        select:focus { border-color: var(--accent); }
+        .btn { background: var(--accent); color: #0b0f19; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #7dd3fc; box-shadow: 0 0 15px var(--accent-glow); }
+        .btn-secondary-action { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); }
+        .btn-secondary-action:hover { background: rgba(255,255,255,0.1); border-color: var(--text-muted); }
+        .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
+        .workspace-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 30px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .list-container { max-height: 520px; overflow-y: auto; padding-right: 5px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--bg-item); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; transition: border-color 0.2s; }
+        .list-item:hover { border-color: rgba(255,255,255,0.1); }
+        .item-info strong { display: block; font-size: 15px; color: var(--text-main); margin-bottom: 4px; }
+        .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .badge-video { background: rgba(56,189,248,0.1); color: var(--accent); border: 1px solid var(--accent); }
+        .badge-image { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid var(--success); }
+        .item-controls { display: flex; align-items: center; gap: 10px; }
+        .counter-group { display: flex; align-items: center; gap: 6px; }
+        .counter-input { width: 55px; padding: 8px; background: #090d16; border: 1px solid var(--border); border-radius: 6px; color: #fff; text-align: center; font-size: 14px; font-weight: 600; outline: none; }
+        .counter-input:focus { border-color: var(--accent); }
+        .btn-sort { background: #090d16; color: var(--text-muted); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-sort:hover { color: #fff; border-color: var(--text-muted); }
+        .btn-remove { color: var(--danger); background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); padding: 6px 12px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-remove:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,15,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-card h3 { margin: 0 0 15px 0; font-size: 18px; }
+        .modal-card p { margin: 0 0 25px 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        input[type="text"] { width: 100%; padding: 12px; background: #090d16; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; box-sizing: border-box; margin-bottom: 20px; outline: none; }
+        input[type="text"]:focus { border-color: var(--accent); }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-cancel { background: transparent; color: var(--text-muted); border: none; padding: 10px 20px; cursor: pointer; font-weight: 600; }
+        .btn-cancel:hover { color: #fff; }
+        .footer { background: #090d16; padding: 20px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Конструктор Плейлистов</h1>
+        <a href="index.html" class="btn-back">&larr; Главная</a>
+    </div>
+    <div class="container">
+        <div class="control-bar">
+            <div class="select-group">
+                <label>Выберите активный плейлист:</label>
+                <select id="playlistSelector" onchange="loadPlaylistItems()"></select>
+            </div>
+            <button class="btn btn-secondary-action" onclick="openModal('createPlaylistModal')">+ Новый плейлист</button>
+            <button class="btn btn-danger" id="deletePlaylistBtn" style="display:none;" onclick="openModal('deletePlaylistModal')">Удалить этот плейлист</button>
+        </div>
+        <div class="workspace-grid">
+            <div class="card">
+                <div class="card-title">Доступные ресурсы склада</div>
+                <div id="warehouseContainer" class="list-container"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Очередь воспроизведения плейлиста</div>
+                <div id="queueContainer" class="list-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="createPlaylistModal" class="modal-overlay">
+        <div class="modal-card" style="border-color:rgba(56,189,248,0.2);">
+            <h3 style="color:var(--accent);">Создать новый плейлист</h3>
+            <input type="text" id="newPlaylistName" placeholder="Введите название (например: Корпус А - Фойе)" autocomplete="off">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal('createPlaylistModal')">Отмена</button>
+                <button class="btn" onclick="submitCreatePlaylist()">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deletePlaylistModal" class="modal-overlay">
+        <div class="modal-card" style="border-color:rgba(239,68,68,0.3);">
+            <h3 style="color:var(--danger);">Удалить плейлист?</h3>
+            <p>Вы собираетесь полностью удалить этот список вещания. Сами видеофайлы на складе останутся нетронутыми.</p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal('deletePlaylistModal')">Отмена</button>
+                <button class="btn btn-danger" style="padding:10px 20px;" onclick="submitDeletePlaylist()">Да, удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Проект <strong>«ИЭФ ТВ»</strong> &copy; 2026</div>
+        <div>Разработчик: <strong>Ибрагимов А. С.</strong></div>
+    </div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+        if (id === 'createPlaylistModal') {
+            const input = document.getElementById('newPlaylistName');
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    async function submitCreatePlaylist() {
+        const nameInput = document.getElementById('newPlaylistName');
+        const name = nameInput.value.trim();
+        if (!name) return;
+        try {
+            const res = await fetch('/api/playlists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                closeModal('createPlaylistModal');
+                await loadPlaylistSelect();
+                const selector = document.getElementById('playlistSelector');
+                selector.selectedIndex = selector.options.length - 1;
+                loadPlaylistItems();
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadPlaylistSelect() {
+        try {
+            const res = await fetch('/api/playlists');
+            const playlists = await res.json();
+            const selector = document.getElementById('playlistSelector');
+            const deleteBtn = document.getElementById('deletePlaylistBtn');
+            selector.innerHTML = '';
+            if (playlists.length === 0) {
+                deleteBtn.style.display = 'none';
+                document.getElementById('queueContainer').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding-top:40px;">Плейлистов не найдено. Создайте первый список.</p>';
+                return;
+            }
+            deleteBtn.style.display = 'inline-block';
+            playlists.forEach(pl => {
+                const opt = document.createElement('option');
+                opt.value = pl.id;
+                opt.innerText = pl.name;
+                selector.appendChild(opt);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function submitDeletePlaylist() {
+        const id = document.getElementById('playlistSelector').value;
+        if (!id) return;
+        try {
+            const res = await fetch(`/api/playlists/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                closeModal('deletePlaylistModal');
+                await loadPlaylistSelect();
+                loadPlaylistItems();
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadWarehouseList() {
+        try {
+            const res = await fetch('/api/media');
+            const files = await res.json();
+            const container = document.getElementById('warehouseContainer');
+            if (files.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding-top:40px;">Склад пуст. Сначала загрузите файлы в Медиатеке.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `
+                    <div class="item-info">
+                        <strong>${file.title}</strong>
+                        <span class="badge ${file.type === 'video' ? 'badge-video' : 'badge-image'}">${file.type === 'video' ? 'Видео' : 'Графика'}</span>
+                    </div>
+                    <button class="btn" style="padding:6px 14px;font-size:12px;" onclick="addItemToQueue(${file.id}, '${file.type}')">+ Очередь</button>
+                `;
+                container.appendChild(item);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function addItemToQueue(mediaId, type) {
+        const playlistId = document.getElementById('playlistSelector').value;
+        if (!playlistId) return;
+        const defaultSettingsValue = type === 'image' ? 10 : 1;
+        try {
+            const res = await fetch('/api/playlists/items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playlist_id: parseInt(playlistId), media_id: parseInt(mediaId), settings_value: defaultSettingsValue })
+            });
+            if (res.ok) loadPlaylistItems();
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadPlaylistItems() {
+        const playlistId = document.getElementById('playlistSelector').value;
+        const container = document.getElementById('queueContainer');
+        if (!playlistId) {
+            container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding-top:40px;">Выберите или создайте рабочий плейлист.</p>';
+            return;
+        }
+        try {
+            const res = await fetch(`/api/playlists/${playlistId}/items`);
+            const items = await res.json();
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding-top:40px;">Очередь вещания пуста. Добавьте файлы слева.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                const isVideo = item.type === 'video';
+                div.innerHTML = `
+                    <div class="item-info">
+                        <strong>${index + 1}. ${item.title}</strong>
+                        <span class="badge ${isVideo ? 'badge-video' : 'badge-image'}">${isVideo ? 'Видео' : 'Графика'}</span>
+                    </div>
+                    <div class="item-controls">
+                        <div class="counter-group">
+                            <label style="font-size:11px;">${isVideo ? 'Повторов:' : 'Секунд:'}</label>
+                            <input type="number" class="counter-input" min="1" value="${item.settings_value}" onchange="updateItemSettings(${item.item_id}, this.value)">
+                        </div>
+                        <button class="btn-sort" onclick="moveItem(${item.item_id}, 'up')">▲</button>
+                        <button class="btn-sort" onclick="moveItem(${item.item_id}, 'down')">▼</button>
+                        <button class="btn-remove" onclick="removeItemFromQueue(${item.item_id})">&times;</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function updateItemSettings(itemId, value) {
+        let cleanValue = parseInt(value);
+        if (isNaN(cleanValue) || cleanValue < 1) cleanValue = 1;
+        try {
+            await fetch(`/api/playlists/items/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings_value: cleanValue })
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function moveItem(itemId, direction) {
+        const playlistId = document.getElementById('playlistSelector').value;
+        try {
+            const res = await fetch(`/api/playlists/items/${itemId}/move`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ direction, playlist_id: parseInt(playlistId) })
+            });
+            if (res.ok) loadPlaylistItems();
+        } catch (e) { console.error(e); }
+    }
+
+    async function removeItemFromQueue(itemId) {
+        try {
+            const res = await fetch(`/api/playlists/items/${itemId}`, { method: 'DELETE' });
+            if (res.ok) loadPlaylistItems();
+        } catch (e) { console.error(e); }
+    }
+
+    async function initPage() {
+        await loadPlaylistSelect();
+        await loadWarehouseList();
+        loadPlaylistItems();
+    }
+
+    initPage();
+</script>
+</body>
+</html>

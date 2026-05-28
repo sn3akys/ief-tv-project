@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИЭФ ТВ — Панель управления</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #131a2c;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(to right, #0f172a, #1e1b4b);
+            padding: 40px 20px; border-bottom: 1px solid var(--border);
+            text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .header h1 {
+            margin: 0; font-size: 28px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase;
+            background: linear-gradient(to right, #fff, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header p { margin: 10px 0 0 0; color: var(--text-muted); font-size: 14px; }
+        .container { max-width: 900px; margin: 60px auto; padding: 0 20px; flex: 1; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .menu-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 45px 30px; text-align: center;
+            text-decoration: none; color: #fff;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .menu-card:hover {
+            border-color: var(--accent); transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(56,189,248,0.12);
+        }
+        .icon-box { font-size: 40px; margin-bottom: 20px; }
+        .menu-card h2 { margin: 0 0 12px 0; font-size: 20px; color: var(--accent); font-weight: 600; }
+        .menu-card p { margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+        .footer {
+            background: #090d16; padding: 25px; text-align: center;
+            font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border);
+        }
+        .footer strong { color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📺 Панель управления вещанием</h1>
+        <p>Информационная система телевещания «ИЭФ ТВ»</p>
+    </div>
+    <div class="container">
+        <div class="menu-grid">
+            <a href="media.html" class="menu-card">
+                <div class="icon-box">📂</div>
+                <h2>Медиатека (Склад)</h2>
+                <p>Загрузка видеоматериалов и графических объявлений, централизованное хранение медиаресурсов.</p>
+            </a>
+            <a href="playlists.html" class="menu-card">
+                <div class="icon-box">📝</div>
+                <h2>Конструктор плейлистов</h2>
+                <p>Управление очередью показов, настройка хронометража картинок и количества повторов видео.</p>
+            </a>
+            <a href="screens.html" class="menu-card" style="grid-column: span 2; padding: 30px;">
+                <div class="icon-box">🖥️</div>
+                <h2>Управление экранами (ТВ)</h2>
+                <p>Подключение физических телевизоров, генерация ссылок вещания и мгновенная привязка плейлистов к экранам.</p>
+            </a>
+        </div>
+    </div>
+    <div class="footer">
+        Проект <strong>«ИЭФ ТВ»</strong> &copy; 2026 | Разработчик: <strong>Ибрагимов А. С.</strong>
+    </div>
+</body>
+</html>

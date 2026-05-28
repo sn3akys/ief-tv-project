@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИЭФ ТВ — Управление экранами</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19; --bg-card: #131a2c; --bg-item: #1b243c;
+            --accent: #38bdf8; --accent-glow: rgba(56,189,248,0.15);
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.05); --success: #10b981; --danger: #ef4444;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { background: linear-gradient(to right, #0f172a, #1e1b4b); padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
+        .header .btn-back { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; transition: all 0.2s; }
+        .header .btn-back:hover { color: var(--accent); border-color: var(--accent); }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 30px; flex: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); height: fit-content; }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        input[type="text"] { padding: 12px; background: #090d16; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: var(--accent); }
+        .slug-hint { font-size: 12px; color: var(--text-muted); margin-top: -12px; margin-bottom: 15px; display: block; }
+        .btn { width: 100%; background: var(--accent); color: #0b0f19; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #7dd3fc; box-shadow: 0 0 15px var(--accent-glow); }
+        .status-msg { font-size: 13px; text-align: center; margin-top: 12px; font-weight: 500; padding: 8px; border-radius: 6px; display: none; }
+        .status-msg.error { display: block; background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 14px; color: var(--accent); font-size: 14px; border-bottom: 2px solid var(--border); }
+        td { padding: 16px 14px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+        .screen-link { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 13px; background: #090d16; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        .screen-link:hover { text-decoration: underline; }
+        select { padding: 8px 12px; background: #090d16; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
+        select:focus { border-color: var(--accent); }
+        .btn-delete { background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-delete:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,15,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card { background: var(--bg-card); border: 1px solid rgba(239,68,68,0.3); border-radius: 16px; padding: 30px; width: 380px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-card h3 { margin: 0 0 15px 0; color: var(--danger); font-size: 18px; }
+        .modal-card p { margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; }
+        .btn-cancel { background: transparent; color: var(--text-muted); border: none; padding: 10px 20px; cursor: pointer; font-weight: 600; }
+        .btn-cancel:hover { color: #fff; }
+        .footer { background: #090d16; padding: 20px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖥️ Управление экранами вещания</h1>
+        <a href="index.html" class="btn-back">&larr; Главная</a>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-title">Подключить новый экран</div>
+            <form id="screenForm" onsubmit="handleCreateScreen(event)">
+                <div class="form-group">
+                    <label>Название точки (Имя экрана):</label>
+                    <input type="text" id="screenName" placeholder="Например: Фойе 1 этаж" required>
+                </div>
+                <div class="form-group">
+                    <label>Ключ ссылки (Английский Slug):</label>
+                    <input type="text" id="screenSlug" placeholder="Например: foye-1" required>
+                </div>
+                <span class="slug-hint">Только буквы, цифры и дефис. Используется в URL плеера.</span>
+                <button type="submit" class="btn">Добавить экран в сеть</button>
+                <div id="status" class="status-msg error"></div>
+            </form>
+        </div>
+        <div class="card">
+            <div class="card-title">Активные точки трансляции ИЭФ ТВ</div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Название экрана</th>
+                            <th>Ссылка для плеера</th>
+                            <th style="width:220px;">Транслируемый плейлист</th>
+                            <th style="text-align:center;width:50px;">Удалить</th>
+                        </tr>
+                    </thead>
+                    <tbody id="screensTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteScreenModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Отключить экран?</h3>
+            <p>Точка трансляции будет удалена из системы. Плеер на телевизоре перестанет получать контент.</p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Отмена</button>
+                <button class="btn" style="background:var(--danger);color:#fff;width:auto;padding:10px 20px;" onclick="submitDeleteScreen()">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Проект <strong>«ИЭФ ТВ»</strong> &copy; 2026</div>
+        <div>Разработчик: <strong>Ибрагимов А. С.</strong></div>
+    </div>
+
+<script>
+    let screenToDeleteId = null;
+    let globalPlaylists = [];
+
+    async function handleCreateScreen(e) {
+        e.preventDefault();
+        const status = document.getElementById('status');
+        status.style.display = 'none';
+        const name = document.getElementById('screenName').value;
+        const slug = document.getElementById('screenSlug').value;
+        try {
+            const res = await fetch('/api/screens', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, slug })
+            });
+            if (res.ok) {
+                document.getElementById('screenForm').reset();
+                initPage();
+            } else {
+                const data = await res.json();
+                status.innerText = data.error || 'Ошибка при создании экрана.';
+                status.style.display = 'block';
+            }
+        } catch {
+            status.innerText = 'Ошибка сети.';
+            status.style.display = 'block';
+        }
+    }
+
+    async function loadPlaylistsData() {
+        const res = await fetch('/api/playlists');
+        globalPlaylists = await res.json();
+    }
+
+    async function changeScreenPlaylist(screenId, playlistId) {
+        const val = playlistId === 'null' ? null : parseInt(playlistId);
+        await fetch(`/api/screens/${screenId}/playlist`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_playlist_id: val })
+        });
+    }
+
+    async function renderScreensTable() {
+        const res = await fetch('/api/screens');
+        const screens = await res.json();
+        const tbody = document.getElementById('screensTableBody');
+        if (screens.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:40px 0;">Нет подключенных экранов. Зарегистрируйте первый телевизор слева.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        screens.forEach(s => {
+            const tr = document.createElement('tr');
+            let optionsHtml = `<option value="null" ${s.current_playlist_id === null ? 'selected' : ''}>-- Вещание остановлено --</option>`;
+            globalPlaylists.forEach(p => {
+                optionsHtml += `<option value="${p.id}" ${s.current_playlist_id === p.id ? 'selected' : ''}>${p.name}</option>`;
+            });
+            const playerUrl = `../player.html?screen=${s.slug}`;
+            tr.innerHTML = `
+                <td><strong>${s.name}</strong></td>
+                <td><a href="${playerUrl}" target="_blank" class="screen-link">/player.html?screen=${s.slug}</a></td>
+                <td><select onchange="changeScreenPlaylist(${s.id}, this.value)">${optionsHtml}</select></td>
+                <td style="text-align:center;"><button class="btn-delete" onclick="openDeleteModal(${s.id})">×</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function openDeleteModal(id) {
+        screenToDeleteId = id;
+        document.getElementById('deleteScreenModal').classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteScreenModal').classList.remove('active');
+        screenToDeleteId = null;
+    }
+
+    async function submitDeleteScreen() {
+        if (!screenToDeleteId) return;
+        await fetch(`/api/screens/${screenToDeleteId}`, { method: 'DELETE' });
+        closeDeleteModal();
+        renderScreensTable();
+    }
+
+    async function initPage() {
+        await loadPlaylistsData();
+        await renderScreensTable();
+    }
+
+    initPage();
+</script>
+</body>
+</html>

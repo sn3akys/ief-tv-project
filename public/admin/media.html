@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИЭФ ТВ — Склад Медиафайлов</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19; --bg-card: #131a2c; --bg-item: #1b243c;
+            --accent: #38bdf8; --accent-glow: rgba(56,189,248,0.15);
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.05); --success: #10b981; --danger: #ef4444;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { background: linear-gradient(to right, #0f172a, #1e1b4b); padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #fff; }
+        .header .btn-back { text-decoration: none; color: var(--text-muted); font-size: 14px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; transition: all 0.2s; }
+        .header .btn-back:hover { color: var(--accent); border-color: var(--accent); }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 30px; flex: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); height: fit-content; }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        input[type="text"] { padding: 12px; background: #090d16; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: var(--accent); }
+        .file-label { display: block; padding: 15px; background: #090d16; border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; text-align: center; cursor: pointer; color: var(--text-muted); font-size: 13px; transition: all 0.2s; }
+        .file-label:hover { border-color: var(--accent); color: #fff; }
+        .btn { width: 100%; background: var(--accent); color: #0b0f19; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .btn:hover { background: #7dd3fc; box-shadow: 0 0 15px var(--accent-glow); }
+        .status-msg { font-size: 13px; text-align: center; margin-top: 12px; font-weight: 500; display: none; padding: 8px; border-radius: 6px; }
+        .status-msg.error { display: block; background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+        .status-msg.success { display: block; background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+        .media-list { display: flex; flex-direction: column; gap: 12px; max-height: 550px; overflow-y: auto; }
+        .media-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--bg-item); border: 1px solid var(--border); border-radius: 12px; }
+        .media-info strong { display: block; font-size: 15px; color: var(--text-main); margin-bottom: 4px; }
+        .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .badge-video { background: rgba(56,189,248,0.1); color: var(--accent); border: 1px solid var(--accent); }
+        .badge-image { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid var(--success); }
+        .btn-delete { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid var(--danger); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.2s; }
+        .btn-delete:hover { background: var(--danger); color: #fff; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,8,15,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card { background: var(--bg-card); border: 1px solid rgba(239,68,68,0.3); border-radius: 16px; padding: 30px; width: 380px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .modal-card h3 { margin: 0 0 10px 0; color: var(--danger); font-size: 18px; }
+        .modal-card p { margin: 0 0 20px 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+        .footer { background: #090d16; padding: 20px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted); margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📂 Склад Медиафайлов</h1>
+        <a href="index.html" class="btn-back">&larr; Главная</a>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="card-title">Добавить на склад</div>
+            <form id="uploadForm" onsubmit="handleUpload(event)">
+                <div class="form-group">
+                    <label>Название медиаресурса:</label>
+                    <input type="text" id="fileTitle" placeholder="Например: Анонс Концерта ИЭФ" required>
+                </div>
+                <div class="form-group">
+                    <label>Файл (Видео или Изображение):</label>
+                    <label for="fileInput" id="fileInputLabel" class="file-label">Выбрать файл (MP4, PNG, JPG)</label>
+                    <input type="file" id="fileInput" accept="video/*,image/*" style="display:none;" onchange="updateFileLabel()" required>
+                </div>
+                <button type="submit" class="btn">Загрузить в систему</button>
+                <div id="status" class="status-msg"></div>
+            </form>
+        </div>
+        <div class="card">
+            <div class="card-title" style="display:flex; justify-content:space-between;">
+                <span>Все медиаресурсы ИЭФ ТВ</span>
+                <span id="mediaCount" style="color:var(--text-muted); font-weight:normal;">( 0 )</span>
+            </div>
+            <div id="mediaListContainer" class="media-list"></div>
+        </div>
+    </div>
+
+    <div id="deleteMediaModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Удаление файла</h3>
+            <p>Вы действительно хотите стереть этот файл со склада? Он также пропадет из всех существующих плейлистов.</p>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeDeleteModal()">Отмена</button>
+                <button class="btn" style="background:var(--danger);color:#fff;width:auto;padding:10px 22px;" onclick="submitDeleteMedia()">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Проект <strong>«ИЭФ ТВ»</strong> &copy; 2026</div>
+        <div>Разработчик: <strong>Ибрагимов А. С.</strong></div>
+    </div>
+
+<script>
+    let mediaToDeleteId = null;
+
+    function updateFileLabel() {
+        const input = document.getElementById('fileInput');
+        const label = document.getElementById('fileInputLabel');
+        if (input.files.length > 0) {
+            label.innerText = `Выбран файл: ${input.files[0].name}`;
+            label.style.borderColor = 'var(--accent)';
+            label.style.color = '#fff';
+        } else {
+            label.innerText = 'Выбрать файл (MP4, PNG, JPG)';
+            label.style.borderColor = 'rgba(255,255,255,0.15)';
+        }
+    }
+
+    function showStatus(text, type) {
+        const status = document.getElementById('status');
+        status.className = `status-msg ${type}`;
+        status.innerText = text;
+    }
+
+    async function handleUpload(event) {
+        event.preventDefault();
+        const titleInput = document.getElementById('fileTitle');
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) return;
+        const formData = new FormData();
+        formData.append('title', titleInput.value.trim());
+        formData.append('file', fileInput.files[0]);
+        showStatus('Сохранение файла на сервере...', 'success');
+        try {
+            const res = await fetch('/api/media', { method: 'POST', body: formData });
+            if (res.ok) {
+                showStatus('Файл успешно сохранен на складе!', 'success');
+                document.getElementById('uploadForm').reset();
+                updateFileLabel();
+                loadMediaList();
+            } else {
+                showStatus('Ошибка при сохранении файла.', 'error');
+            }
+        } catch (e) {
+            showStatus('Ошибка сети при отправке.', 'error');
+        }
+    }
+
+    async function loadMediaList() {
+        try {
+            const res = await fetch('/api/media');
+            const files = await res.json();
+            document.getElementById('mediaCount').innerText = `( ${files.length} )`;
+            const container = document.getElementById('mediaListContainer');
+            if (files.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding-top:40px;">Склад пуст. Загрузите первый медиафайл.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'media-item';
+                item.innerHTML = `
+                    <div class="media-info">
+                        <strong>${file.title}</strong>
+                        <span class="badge ${file.type === 'video' ? 'badge-video' : 'badge-image'}">${file.type === 'video' ? 'Видео' : 'Графика'}</span>
+                    </div>
+                    <button class="btn-delete" onclick="openDeleteModal(${file.id})">Удалить</button>
+                `;
+                container.appendChild(item);
+            });
+        } catch (e) {
+            console.error('Ошибка загрузки склада:', e);
+        }
+    }
+
+    function openDeleteModal(id) {
+        mediaToDeleteId = id;
+        document.getElementById('deleteMediaModal').classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteMediaModal').classList.remove('active');
+        mediaToDeleteId = null;
+    }
+
+    async function submitDeleteMedia() {
+        if (!mediaToDeleteId) return;
+        try {
+            const res = await fetch(`/api/media/${mediaToDeleteId}`, { method: 'DELETE' });
+            if (res.ok) { closeDeleteModal(); loadMediaList(); }
+        } catch (e) { console.error(e); }
+    }
+
+    loadMediaList();
+</script>
+</body>
+</html>

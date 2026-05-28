@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИЭФ ТВ — Плеер вещания</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        .container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .content-display {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .status-layer {
+            color: #ffffff; font-size: 24px; text-align: center;
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 10;
+        }
+        .status-layer h2 { margin: 0 0 10px 0; color: #38bdf8; }
+        .status-layer p { margin: 0; font-size: 16px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img id="imagePlayer" class="content-display" src="" alt="ИЭФ ТВ Графика">
+        <video id="videoPlayer" class="content-display" muted playsinline></video>
+        <div id="statusLayer" class="status-layer" style="display:flex;">
+            <h2>📺 Система «ИЭФ ТВ»</h2>
+            <p id="statusMessage">Инициализация и подключение к серверу...</p>
+        </div>
+    </div>
+
+<script>
+    const SERVER_URL = window.location.origin;
+    const urlParams = new URLSearchParams(window.location.search);
+    const screenSlug = urlParams.get('screen');
+
+    const imagePlayer = document.getElementById('imagePlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const statusLayer = document.getElementById('statusLayer');
+
+    let playlistItems = [];
+    let currentIndex = 0;
+    let currentVideoPlayCount = 0;
+    let mainLoopTimeout = null;
+
+    function showStatus(title, desc) {
+        imagePlayer.style.display = 'none';
+        videoPlayer.style.display = 'none';
+        videoPlayer.pause();
+        statusLayer.style.display = 'flex';
+        statusLayer.innerHTML = `<h2>${title}</h2><p>${desc}</p>`;
+    }
+
+    async function fetchScreenPlaylist() {
+        if (!screenSlug) {
+            showStatus('❌ Ошибка плеера', 'В ссылке не указан параметр экрана. Пример: ?screen=foye');
+            return;
+        }
+        try {
+            const resScreens = await fetch(`${SERVER_URL}/api/screens`);
+            const screens = await resScreens.json();
+            const currentScreen = screens.find(s => s.slug === screenSlug.trim().toLowerCase());
+
+            if (!currentScreen) {
+                showStatus('🖥️ Экран не зарегистрирован', `Точка вещания с ключом "${screenSlug}" не найдена в админ-панели.`);
+                return;
+            }
+            if (!currentScreen.current_playlist_id) {
+                showStatus('⏸️ Трансляция остановлена', `Для экрана "${currentScreen.name}" не назначен активный плейлист.`);
+                setTimeout(fetchScreenPlaylist, 5000);
+                return;
+            }
+
+            const resItems = await fetch(`${SERVER_URL}/api/playlists/${currentScreen.current_playlist_id}/items`);
+            const items = await resItems.json();
+
+            if (items.length === 0) {
+                showStatus('📝 Очередь пуста', 'В плейлисте нет медиафайлов для показа.');
+                setTimeout(fetchScreenPlaylist, 5000);
+                return;
+            }
+
+            const isChanged = JSON.stringify(items) !== JSON.stringify(playlistItems);
+            if (isChanged) {
+                playlistItems = items;
+                currentIndex = 0;
+                clearTimeout(mainLoopTimeout);
+                startBroadcast();
+            } else {
+                setTimeout(fetchScreenPlaylist, 10000);
+            }
+        } catch (e) {
+            console.error('Ошибка синхронизации:', e);
+            setTimeout(fetchScreenPlaylist, 5000);
+        }
+    }
+
+    function startBroadcast() {
+        if (playlistItems.length === 0) return;
+        statusLayer.style.display = 'none';
+
+        const currentItem = playlistItems[currentIndex];
+        const fileUrl = `${SERVER_URL}/uploads/${currentItem.filename}`;
+
+        if (currentItem.type === 'video') {
+            imagePlayer.style.display = 'none';
+            videoPlayer.style.display = 'block';
+            videoPlayer.src = fileUrl;
+            currentVideoPlayCount = 0;
+            videoPlayer.load();
+            videoPlayer.play().catch(() => nextStep());
+        } else {
+            videoPlayer.style.display = 'none';
+            videoPlayer.pause();
+            imagePlayer.style.display = 'block';
+            imagePlayer.src = fileUrl;
+            const displayMs = (currentItem.settings_value || 10) * 1000;
+            mainLoopTimeout = setTimeout(nextStep, displayMs);
+        }
+    }
+
+    videoPlayer.onended = () => {
+        const currentItem = playlistItems[currentIndex];
+        currentVideoPlayCount++;
+        if (currentVideoPlayCount >= (currentItem.settings_value || 1)) {
+            nextStep();
+        } else {
+            videoPlayer.currentTime = 0;
+            videoPlayer.play().catch(() => nextStep());
+        }
+    };
+
+    function nextStep() {
+        currentIndex++;
+        if (currentIndex >= playlistItems.length) {
+            currentIndex = 0;
+            fetchScreenPlaylist();
+        } else {
+            startBroadcast();
+        }
+    }
+
+    fetchScreenPlaylist();
+</script>
+</body>
+</html>
